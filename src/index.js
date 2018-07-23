@@ -17,7 +17,7 @@ const getServiceName = (image: string): string => {
     return name;
 };
 
-export default (input: string): ?string => {
+const getService = (input: string): any => {
     const formattedInput = input.replace(/(\s)+/g, ' ').trim();
     const parsedInput: {
         +_: Array<string>,
@@ -50,13 +50,20 @@ export default (input: string): ?string => {
     service.image = image;
 
     const serviceName = getServiceName(image);
+    return {serviceName:serviceName,service:service};
+};
 
+export default (input: string): ?string => {
+    const containers = input.split('+');
+    const services = {};
+    for (let i = 0; i < containers.length; i= i + 1) {
+        const service = getService(containers[i]);
+        services[service.serviceName] = service.service;
+    }
     // Outer template
     const result = {
         version: '3.3',
-        services: {
-            [serviceName]: service,
-        },
+        services,
     };
 
     return yamljs.stringify(result, 9, 4).trim();
