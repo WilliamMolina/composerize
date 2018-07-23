@@ -17,11 +17,31 @@ composerize can be run in the cli.
 ```bash
 $ composerize docker run -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro --restart always --log-opt max-size=1g nginx
 ```
-### Multiple docker run commands
+## Multiple docker run commands
 Append several docker run commands using '+' operator.
 
 ```bash
 node cli.js docker run -it  --name dind -v /var/run/docker.sock:/var/run/docker.sock wondercode/dind + docker run -d  --name metabase -p 3000:3000 random/metabase
+```
+
+## Docker
+
+Use the docker image.
+
+```bash
+$ docker run -it  wondercode/composerize node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase
+```
+
+## Save to a file
+Save the generated docker-compose to a file:
+
+```bash
+$ node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase > docker-compose.yml
+```
+ Or:
+
+ ```bash
+$ docker run -it  wondercode/composerize node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase > docker-compose.yml
 ```
 ## Contributing
 
@@ -31,7 +51,5 @@ node cli.js docker run -it  --name dind -v /var/run/docker.sock:/var/run/docker.
 
 ## Coming soon
 
-- Run composerize inside docker container.
-- Create docker-compose.yml file.
 - Run composerize from a file containing docker commands.
 - Electron app.
