@@ -50,13 +50,13 @@ const getService = (input: string): any => {
     service.image = image;
 
     const serviceName = getServiceName(image);
-    return {serviceName:serviceName,service:service};
+    return { serviceName, service };
 };
 
 export default (input: string): ?string => {
     const containers = input.split('+');
     const services = {};
-    for (let i = 0; i < containers.length; i= i + 1) {
+    for (let i = 0; i < containers.length; i += 1) {
         const service = getService(containers[i]);
         services[service.serviceName] = service.service;
     }
