@@ -1,6 +1,6 @@
 {
-  "name": "composerizeplus",
-  "version": "1.0.1",
+  "name": "composerize-plus",
+  "version": "1.1.0",
   "main": "dist/composerize.js",
   "license": "MIT",
   "scripts": {
@@ -12,7 +12,7 @@
     "typecheck": "flow check"
   },
   "bin": {
-    "composerize": "cli.js"
+    "composerize-plus": "cli.js"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
