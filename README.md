@@ -1,27 +1,25 @@
-# composerize
+# composerize-plus
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/magicmark/composerize.svg)](https://greenkeeper.io/)
-[![Build Status](https://travis-ci.org/magicmark/composerize.svg?branch=master)](https://travis-ci.org/magicmark/composerize)
-[![npm](https://img.shields.io/npm/v/composerize.svg)](https://www.npmjs.com/package/composerize)
+[![npm](https://img.shields.io/npm/v/composerize.svg)](https://www.npmjs.com/package/composerize-plus)
 
-http://composerize.com - Turns docker run commands into docker-compose files!
+Turns docker run commands into docker-compose files!
 
-![Demo](https://i.imgur.com/GayZj2G.png)
+![Demo](screenshots/composerize-plus.png)
 
 ## CLI
 
-composerize can be run in the cli.
+composerize-plus can be run in the cli.
 
-`npm install composerize -g` to install, and run as such:
+`npm install composerize-plus -g`  to install, and run as such:
 
 ```bash
-$ composerize docker run -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro --restart always --log-opt max-size=1g nginx
+$ composerize-plus docker run -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro --restart always --log-opt max-size=1g nginx
 ```
 ## Multiple docker run commands
 Append several docker run commands using '+' operator.
 
 ```bash
-node cli.js docker run -it  --name dind -v /var/run/docker.sock:/var/run/docker.sock wondercode/dind + docker run -d  --name metabase -p 3000:3000 random/metabase
+$ composerize-plus docker run -it  --name dind -v /var/run/docker.sock:/var/run/docker.sock wondercode/dind + docker run -d  --name metabase -p 3000:3000 random/metabase
 ```
 
 ## Docker
@@ -29,20 +27,24 @@ node cli.js docker run -it  --name dind -v /var/run/docker.sock:/var/run/docker.
 Use the docker image.
 
 ```bash
-$ docker run -it  wondercode/composerize node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase
+$ docker run --rm  wondercode/composerize-plus:1.1.0 docker run -d  --name metabase -p 3000:3000 metabase/metabase
+```
+### Create an alias
+```bash
+$ alias composerize-plus="docker run --rm wondercode/composerize-plus:1.1.0"
+```
+and run:
+```bash
+$ composerize-plus docker run -d  --name metabase -p 3000:3000 metabase/metabase
 ```
 
 ## Save to a file
 Save the generated docker-compose to a file:
 
 ```bash
-$ node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase > docker-compose.yml
+$ composerize-plus docker run -d  --name metabase -p 3000:3000 metabase/metabase > docker-compose.yml
 ```
- Or:
 
- ```bash
-$ docker run -it  wondercode/composerize node cli.js docker run -d  --name metabase -p 3000:3000 random/metabase > docker-compose.yml
-```
 ## Contributing
 
 - [Clone a fork of the repo](https://guides.github.com/activities/forking/) and install the project dependencies by running `yarn install`
@@ -51,5 +53,6 @@ $ docker run -it  wondercode/composerize node cli.js docker run -d  --name metab
 
 ## Coming soon
 
-- Run composerize from a file containing docker commands.
-- Electron app.
+- Run composerize-plus using a file containing docker run commands.
+- Create from container names or ids.
+- Create Electron app.
