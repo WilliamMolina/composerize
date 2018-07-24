@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@sharkcore/eslint-config": "^1.1.0-alpha.3",
+    "child-process-promise": "^2.2.1",
     "core-js": "^2.5.5",
     "deepmerge": "^2.1.0",
     "yamljs": "^0.3.0",
