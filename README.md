@@ -44,6 +44,17 @@ Save the generated docker-compose to a file:
 ```bash
 $ composerize-plus docker run -d  --name metabase -p 3000:3000 metabase/metabase > docker-compose.yml
 ```
+## From container name/id
+This feature is available from version 1.2.1.
+
+```bash
+$ composerize-plus portainer + a51e784c42be > docker-compose.yml
+```
+In order to use this feature with the docker image wondercode/composerize-plus:1.2.1 you must to mount /var/run/docker.sock into the container, as follows:
+
+```bash
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock wondercode/composerize-plus:1.2.1 a51e784c42be > docker-compose.yml
+```
 
 ## Contributing
 
@@ -54,5 +65,4 @@ $ composerize-plus docker run -d  --name metabase -p 3000:3000 metabase/metabase
 ## Coming soon
 
 - Run composerize-plus using a file containing docker run commands.
-- Create from container names or ids.
 - Create Electron app.
