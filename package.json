@@ -8,7 +8,6 @@
     "build": "rollup -c",
     "jest": "node_modules/.bin/jest --no-watchman",
     "eslint": "eslint *.js src/**/*.js --fix",
-    "precommit": "yarn run eslint",
     "typecheck": "flow check"
   },
   "bin": {

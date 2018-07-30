@@ -60,7 +60,7 @@ export const getMapping = (type: ArgType, path: string): Mapping => ({
 // docker cli -> docker-compose options
 export const MAPPINGS: { [string]: Mapping } = {
     device: getMapping('Array', 'devices'),
-    cap_add: getMapping('Array', 'cap_add'),
+    'cap-add': getMapping('Array', 'cap_add'),
     cap_drop: getMapping('Array', 'cap_drop'),
     cgroup_parent: getMapping('Value', 'cgroup_parent'),
     dns: getMapping('Array', 'dns'),
@@ -72,7 +72,9 @@ export const MAPPINGS: { [string]: Mapping } = {
     entrypoint: getMapping('Array', 'entrypoint'),
     env: getMapping('Array', 'environment'),
     name: getMapping('Value', 'container_name'),
+    net: getMapping('Value', 'network_mode'),
     network: getMapping('Value', 'network_mode'),
+    pid: getMapping('Value', 'pid'),
     privileged: getMapping('Switch', 'privileged'),
     publish: getMapping('Array', 'ports'),
     restart: getMapping('Value', 'restart'),

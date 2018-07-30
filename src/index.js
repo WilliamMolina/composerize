@@ -5,9 +5,12 @@ import 'core-js/fn/object/entries';
 import yamljs from 'yamljs';
 import parser from 'yargs-parser';
 import deepmerge from 'deepmerge';
+
 import { maybeGetComposeEntry, getComposeJson } from './logic';
+
 export type RawValue = string | number | boolean | [string | number | boolean];
 const childp = require('child-process-promise').spawn;
+
 const getServiceName = (image: string): string => {
     let name = image.includes('/') ? image.split('/')[1] : image;
     name = name.includes(':') ? name.split(':')[0] : name;
@@ -20,13 +23,11 @@ const getService = (input: string): any => {
     const parsedInput: {
         +_: Array < string >,
         +[flag: string]: RawValue,
-    } = parser(formattedInput, { boolean: ['i', 't', 'd'] });
+    } = parser(formattedInput, { boolean: ['i', 't', 'd', 'rm'] });
 const { _: command, ...params } = parsedInput;
-
 if (command[0] !== 'docker' || command[1] !== 'run') {
     throw new SyntaxError('must be a valid docker run command');
 }
-
 // The service object that we'll update
 let service = {};
 
@@ -43,26 +44,31 @@ Object.entries(params).forEach(
         }
     },
 );
-
-const image = command.slice(-1)[0];
-service.image = image;
-
+const commandOption = command.slice(3);
+service.image = command[2];
+if (commandOption.length > 0) {
+    service.command = commandOption.join(' ');
+}
 const serviceName = getServiceName(image);
 return { serviceName, service };
 };
 
 export default (input: string): ?string => {
     let containers = input.split('+');
-    const names = containers.filter(value => { return value.trim().split(' ').length === 1 }).map(value => { return value.trim() });
-    containers = containers.filter(value => { return value.trim().split(' ').length !== 1 });
+    const names = containers
+        .filter(value => value.trim().split(' ').length === 1)
+        .map(value => value.trim());
+    containers = containers.filter(
+        value => value.trim().split(' ').length !== 1,
+    );
     const services = {};
-    let promises = [];
-    let info = [];
+    const promises = [];
+    const info = [];
     if (names.length > 0) {
-        var promise = childp('docker', ['inspect'].concat(names));
+        const promise = childp('docker', ['inspect'].concat(names));
         promises.push(promise);
-        var childProcess = promise.childProcess;
-        childProcess.stdout.on('data', function (data) {
+        const childProcess = promise.childProcess;
+        childProcess.stdout.on('data', data => {
             info.push(data);
         });
     }
@@ -78,7 +84,7 @@ export default (input: string): ?string => {
                 services[service.serviceName] = service.service;
             }
         }
-        // Outer template  
+        // Outer template
         const result = {
             version: '3.3',
             services,
@@ -90,129 +96,160 @@ export default (input: string): ?string => {
 // json string could be an array from `docker inspect` or
 // a single inspected object; always returns an array
 const parse = function parse(jsonString) {
-    return [].concat(translate(JSON.parse(jsonString)))
-}
+    return [].concat(translate(JSON.parse(jsonString)));
+};
 
 // translate a parsed array or object into "docker run objects"
 // returns an array if given an array, otherwise returns an object
 const translate = function translate(parsed) {
-    return Array.isArray(parsed) ? parsed.map((o) => toRunObject(o)) : toRunObject(parsed)
-}
+    return Array.isArray(parsed)
+        ? parsed.map(o => toRunObject(o))
+        : toRunObject(parsed);
+};
 
 function toRunObject(inspectObj) {
-    let run = {}
+    const run = {};
 
-    run.image = shortHash(inspectObj.Image)
-    run.id = shortHash(inspectObj.Id)
+    run.image = shortHash(inspectObj.Image);
+    run.id = shortHash(inspectObj.Id);
 
-    run.name = inspectObj.Name
-    if (run.name && run.name.indexOf('/') === 0) run.name = run.name.substring(1)
+    run.name = inspectObj.Name;
+    if (run.name && run.name.indexOf('/') === 0)
+        run.name = run.name.substring(1);
 
-    run.command = toRunCommand(inspectObj, run.name)
+    run.command = toRunCommand(inspectObj, run.name);
 
-    return run
+    return run;
 }
 
 function shortHash(hash) {
-    if (hash && hash.length && hash.length > 12) return hash.substring(0, 12)
-    return hash
+    if (hash && hash.length && hash.length > 12) return hash.substring(0, 12);
+    return hash;
 }
 
 function toRunCommand(inspectObj, name) {
-    let rc = append('docker run', '--name', name)
+    let rc = append('docker run', '--name', name);
 
-    let hostcfg = inspectObj.HostConfig || {}
-    rc = appendArray(rc, '-v', hostcfg.Binds)
-    rc = appendArray(rc, '--volumes-from', hostcfg.VolumesFrom)
+    const hostcfg = inspectObj.HostConfig || {};
+    rc = appendArray(rc, '-v', hostcfg.Binds);
+    rc = appendArray(rc, '--volumes-from', hostcfg.VolumesFrom);
     if (hostcfg.PortBindings) {
-        rc = appendObjectKeys(rc, '-p', hostcfg.PortBindings, (ipPort) => {
-            return ipPort.HostIp ? ipPort.HostIp + ':' + ipPort.HostPort : ipPort.HostPort
-        })
+        rc = appendObjectKeys(
+            rc,
+            '-p',
+            hostcfg.PortBindings,
+            ipPort =>
+                ipPort.HostIp
+                    ? `${ipPort.HostIp}:${ipPort.HostPort}`
+                    : ipPort.HostPort,
+        );
     }
-    rc = appendArray(rc, '--link', hostcfg.Links, (link) => {
-        link = link.split(':')
-        if (link[0] && ~link[0].lastIndexOf('/')) link[0] = link[0].substring(link[0].lastIndexOf('/') + 1)
-        if (link[1] && ~link[1].lastIndexOf('/')) link[1] = link[1].substring(link[1].lastIndexOf('/') + 1)
-        return link[0] + ':' + link[1]
-    })
-    if (hostcfg.PublishAllPorts) rc = rc + ' -P'
+    rc = appendArray(rc, '--link', hostcfg.Links, link => {
+        link = link.split(':');
+        if (link[0] && ~link[0].lastIndexOf('/'))
+            link[0] = link[0].substring(link[0].lastIndexOf('/') + 1);
+        if (link[1] && ~link[1].lastIndexOf('/'))
+            link[1] = link[1].substring(link[1].lastIndexOf('/') + 1);
+        return `${link[0]}:${link[1]}`;
+    });
+    if (hostcfg.PublishAllPorts) rc += ' -P';
     if (hostcfg.NetworkMode && hostcfg.NetworkMode !== 'default') {
-        rc = append(rc, '--net', hostcfg.NetworkMode)
+        rc = append(rc, '--net', hostcfg.NetworkMode);
     }
     if (hostcfg.RestartPolicy && hostcfg.RestartPolicy.Name) {
-        rc = append(rc, '--restart', hostcfg.RestartPolicy, (policy) => {
-            return policy.Name === 'on-failure' ? policy.Name + ':' + policy.MaximumRetryCount : policy.Name
-        })
+        rc = append(
+            rc,
+            '--restart',
+            hostcfg.RestartPolicy,
+            policy =>
+                policy.Name === 'on-failure'
+                    ? `${policy.Name}:${policy.MaximumRetryCount}`
+                    : policy.Name,
+        );
     }
-    rc = appendArray(rc, '--add-host', hostcfg.ExtraHosts)
+    rc = appendArray(rc, '--add-host', hostcfg.ExtraHosts);
 
-    let cfg = inspectObj.Config || {}
-    if (cfg.Hostname) rc = append(rc, '-h', cfg.Hostname)
+    const cfg = inspectObj.Config || {};
+    if (cfg.Hostname) rc = append(rc, '-h', cfg.Hostname);
     if (cfg.ExposedPorts) {
-        rc = appendObjectKeys(rc, '--expose', cfg.ExposedPorts)
+        rc = appendObjectKeys(rc, '--expose', cfg.ExposedPorts);
     }
-    rc = appendArray(rc, '-e', cfg.Env, (env) => '\'' + env.replace(/'/g, '\'\\\'\'') + '\'')
-    rc = appendConfigBooleans(rc, cfg)
-    if (cfg.Entrypoint) rc = appendJoinedArray(rc, '--entrypoint', cfg.Entrypoint, ' ')
+    rc = appendArray(
+        rc,
+        '-e',
+        cfg.Env,
+        env => `'${env.replace(/'/g, "'\\''")}'`,
+    );
+    rc = appendConfigBooleans(rc, cfg);
+    if (cfg.Entrypoint)
+        rc = appendJoinedArray(rc, '--entrypoint', cfg.Entrypoint, ' ');
 
-    rc = rc + ' ' + (cfg.Image || inspectObj.Image)
+    rc = `${rc} ${cfg.Image || inspectObj.Image}`;
 
-    if (cfg.Cmd) rc = appendJoinedArray(rc, null, cfg.Cmd, ' ')
+    if (cfg.Cmd) rc = appendJoinedArray(rc, null, cfg.Cmd, ' ');
 
-    return rc
+    return rc;
 }
 
 function appendConfigBooleans(str, cfg) {
-    let stdin = cfg.AttachStdin === true
-    let stdout = cfg.AttachStdout === true
-    let stderr = cfg.AttachStderr === true
-    str = appendBoolean(str, !stdin && !stdout && !stderr, '-d')
-    str = appendBoolean(str, stdin, '-a', 'stdin')
-    str = appendBoolean(str, stdout, '-a', 'stdout')
-    str = appendBoolean(str, stderr, '-a', 'stderr')
-    str = appendBoolean(str, cfg.Tty === true, '-t')
-    str = appendBoolean(str, cfg.OpenStdin === true, '-i')
-    return str
+    const stdin = cfg.AttachStdin === true;
+    const stdout = cfg.AttachStdout === true;
+    const stderr = cfg.AttachStderr === true;
+    str = appendBoolean(str, !stdin && !stdout && !stderr, '-d');
+    str = appendBoolean(str, stdin, '-a', 'stdin');
+    str = appendBoolean(str, stdout, '-a', 'stdout');
+    str = appendBoolean(str, stderr, '-a', 'stderr');
+    str = appendBoolean(str, cfg.Tty === true, '-t');
+    str = appendBoolean(str, cfg.OpenStdin === true, '-i');
+    return str;
 }
 
 function appendBoolean(str, bool, key, val) {
-    return bool ? (val ? append(str, key, val) : str + ' ' + key) : str
+    return bool ? (val ? append(str, key, val) : `${str} ${key}`) : str;
 }
 
 function appendJoinedArray(str, key, array, join) {
-    if (!Array.isArray(array)) return str
-    return append(str, key, array.join(join), (joined) => {
-        return key ? '"' + joined + '"' : joined
-    })
+    if (!Array.isArray(array)) return str;
+    return append(
+        str,
+        key,
+        array.join(join),
+        joined => (key ? `"${joined}"` : joined),
+    );
 }
 
 function appendObjectKeys(str, key, obj, transformer) {
-    let newStr = str
-    Object.keys(obj).forEach((k) => {
-        newStr = append(newStr, key, { 'key': k, val: obj[k] }, (agg) => {
-            if (!agg.val) return agg.key
-            let v = ''
+    let newStr = str;
+    Object.keys(obj).forEach(k => {
+        newStr = append(newStr, key, { key: k, val: obj[k] }, agg => {
+            if (!agg.val) return agg.key;
+            let v = '';
             if (Array.isArray(agg.val)) {
-                agg.val.forEach((valObj) => {
-                    v = (typeof transformer === 'function' ? transformer(valObj) : valObj)
-                })
+                agg.val.forEach(valObj => {
+                    v =
+                        typeof transformer === 'function'
+                            ? transformer(valObj)
+                            : valObj;
+                });
             }
-            return (v ? v + ':' : '') + agg.key
-        })
-    })
-    return newStr
+            return (v ? `${v}:` : '') + agg.key;
+        });
+    });
+    return newStr;
 }
 
 function appendArray(str, key, array, transformer) {
-    if (!Array.isArray(array)) return str
-    let newStr = str
-    array.forEach((v) => {
-        newStr = append(newStr, key, v, transformer)
-    })
-    return newStr
+    if (!Array.isArray(array)) return str;
+    let newStr = str;
+    array.forEach(v => {
+        newStr = append(newStr, key, v, transformer);
+    });
+    return newStr;
 }
 
 function append(str, key, val, transformer) {
-    if (!val) return str
-    return str + ' ' + (key ? key + ' ' : '') + (typeof transformer === 'function' ? transformer(val) : val)
+    if (!val) return str;
+    return `${str} ${key ? `${key} ` : ''}${
+        typeof transformer === 'function' ? transformer(val) : val
+        }`;
 }
