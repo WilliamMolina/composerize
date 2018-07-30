@@ -25,8 +25,8 @@ const getService = (input: string): any => {
         +[flag: string]: RawValue,
     } = parser(formattedInput, { boolean: ['i', 't', 'd', 'rm'] });
 const { _: command, ...params } = parsedInput;
-if (command[0] !== 'docker' || command[1] !== 'run') {
-    throw new SyntaxError('must be a valid docker run command');
+if (command[0] !== 'docker' || (command[1] !== 'run') && command[1] !== 'create') {
+    throw new SyntaxError('must be a valid docker run/create command');
 }
 // The service object that we'll update
 let service = {};
@@ -54,7 +54,7 @@ return { serviceName, service };
 };
 
 export default (input: string): ?string => {
-    let containers = input.split('+');
+    let containers = input.split(' + ');
     const names = containers
         .filter(value => value.trim().split(' ').length === 1)
         .map(value => value.trim());

@@ -64,5 +64,6 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock wondercode/compos
 
 ## Coming soon
 
+- Full support of docker run command options.
 - Run composerize-plus using a file containing docker run commands.
 - Create Electron app.
