@@ -80,6 +80,7 @@ export const MAPPINGS: { [string]: Mapping } = {
     restart: getMapping('Value', 'restart'),
     tmpfs: getMapping('Value', 'tmpfs'),
     volume: getMapping('Array', 'volumes'),
+    security_opt: getMapping('Array', 'security_opt'),
     'log-driver': getMapping('Array', 'logging/driver'),
     'log-opt': getMapping('KeyValue', 'logging/options'),
 };

@@ -49,7 +49,7 @@ service.image = command[2];
 if (commandOption.length > 0) {
     service.command = commandOption.join(' ');
 }
-const serviceName = getServiceName(image);
+const serviceName = getServiceName(service.image);
 return { serviceName, service };
 };
 
