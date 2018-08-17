@@ -53,43 +53,45 @@ const serviceName = getServiceName(service.image);
 return { serviceName, service };
 };
 
-export default (input: string): ?string => {
-    let containers = input.split(' + ');
-    const names = containers
-        .filter(value => value.trim().split(' ').length === 1)
-        .map(value => value.trim());
-    containers = containers.filter(
-        value => value.trim().split(' ').length !== 1,
-    );
-    const services = {};
-    const promises = [];
-    const info = [];
-    if (names.length > 0) {
-        const promise = childp('docker', ['inspect'].concat(names));
-        promises.push(promise);
-        const childProcess = promise.childProcess;
-        childProcess.stdout.on('data', data => {
-            info.push(data);
-        });
-    }
-    for (let i = 0; i < containers.length; i += 1) {
-        const service = getService(containers[i]);
-        services[service.serviceName] = service.service;
-    }
-    Promise.all(promises).then(values => {
+export default (input: string): ?Promise => {
+    return new Promise((resolve, reject) => {
+        let containers = input.split(' + ');
+        const names = containers
+            .filter(value => value.trim().split(' ').length === 1)
+            .map(value => value.trim());
+        containers = containers.filter(
+            value => value.trim().split(' ').length !== 1,
+        );
+        const services = {};
+        const promises = [];
+        const info = [];
         if (names.length > 0) {
-            const commands = parse(info.join(''));
-            for (let i = 0; i < commands.length; i += 1) {
-                const service = getService(commands[i].command);
-                services[service.serviceName] = service.service;
-            }
+            const promise = childp('docker', ['inspect'].concat(names));
+            promises.push(promise);
+            const childProcess = promise.childProcess;
+            childProcess.stdout.on('data', data => {
+                info.push(data);
+            });
         }
-        // Outer template
-        const result = {
-            version: '3.3',
-            services,
-        };
-        console.log(yamljs.stringify(result, 9, 4).trim());
+        for (let i = 0; i < containers.length; i += 1) {
+            const service = getService(containers[i]);
+            services[service.serviceName] = service.service;
+        }
+        Promise.all(promises).then(values => {
+            if (names.length > 0) {
+                const commands = parse(info.join(''));
+                for (let i = 0; i < commands.length; i += 1) {
+                    const service = getService(commands[i].command);
+                    services[service.serviceName] = service.service;
+                }
+            }
+            // Outer template
+            const result = {
+                version: '3.3',
+                services,
+            };
+            resolve(yamljs.stringify(result, 9, 4).trim());
+        });
     });
 };
 
